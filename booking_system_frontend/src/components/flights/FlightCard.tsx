@@ -164,7 +164,7 @@ export const FlightCard = ({ flight, onBook }: FlightCardProps) => {
                     </div>
                     
                     <div className="text-xs text-star-white/60 italic border-t border-white/10 pt-2">
-                      ℹ️ For every {flight.time_dilation_factor.toFixed(2)} hours onboard, {(1 / flight.time_dilation_factor).toFixed(2)} hours pass on Earth due to relativistic time dilation
+                      ℹ️ For every 1 hour onboard, {(1 / flight.time_dilation_factor).toFixed(2)} hours pass on Earth due to relativistic time dilation.
                     </div>
                   </div>
                 </div>

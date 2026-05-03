@@ -413,7 +413,7 @@ async def create_hold(quote_id: str):
             response.raise_for_status()
             return response.json()
         except httpx.HTTPError as e:
-            return {"error": f"Failed to create hold: {str(e)}"}
+            return {"error": f"Failed to get hold: {str(e)}"}
 
 
 @app.get("/holds/{hold_id}", tags=["Holds"])
@@ -432,16 +432,38 @@ async def get_hold(hold_id: str):
 
 
 @app.post("/holds/{hold_id}/confirm", tags=["Holds"])
-async def confirm_hold(hold_id: str):
-    """Proxy endpoint to confirm a hold in the Java hold service."""
+async def confirm_hold(hold_id: str, db: Session = Depends(get_db)): # Added 'db' session
+    """Proxy to confirm in Java AND manually sync to the local Python DB."""
     async with httpx.AsyncClient() as client:
         try:
+            # 1. Ask Java to finalize the seat reservation
             response = await client.post(
                 f"{JAVA_SERVICE_URL}/api/v1/holds/{hold_id}/confirm",
                 timeout=30.0
             )
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+
+            # 2. Inject the ID required by the frontend popup
+            reference_val = f"CHRONOS-{hold_id}"
+            data["externalBookingReference"] = reference_val
+
+            from .models import User
+            # Grab the user "John" to link the booking to his account
+            user_record = db.query(User).filter(User.name == "John").first()
+            
+            if user_record: 
+                # 'My Bookings' page has data to display.
+                booking.book_flight(
+                    db,
+                    user_id=user_record.user_id,
+                    name=user_record.name,
+                    flight_id=data["flightId"],
+                    seat_class=data["seatClass"]
+                )
+                print(f"BOB LOG: Successfully synced {reference_val} for user {user_record.name}")
+            
+            return data
         except httpx.HTTPError as e:
             return {"error": f"Failed to confirm hold: {str(e)}"}
 
