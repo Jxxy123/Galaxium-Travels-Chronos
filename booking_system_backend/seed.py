@@ -3,8 +3,8 @@ from dotenv import load_dotenv
 # Load environment variables BEFORE importing db and models
 load_dotenv()
 
-from models import Base, User, Flight, Booking
-from db import engine, SessionLocal
+from .models import Base, User, Flight, Booking
+from .db import engine, SessionLocal
 from datetime import datetime, timedelta
 import random
 
@@ -32,21 +32,24 @@ def seed():
     db.add_all(users)
     db.commit()
     # Add demo flights with seat class distribution (60% economy, 30% business, 10% galaxium)
+    # Format: (origin, destination, departure, arrival, base_price, total_seats, velocity)
+    # Velocity is fraction of light speed (0.0-0.99)
+    # Short routes: 0.3-0.5c, Medium: 0.6-0.8c, Long: 0.85-0.95c
     flight_data = [
-        ("Earth", "Mars", "2099-01-01T09:00:00Z", "2099-01-01T17:00:00Z", 1000000, 10),
-        ("Earth", "Moon", "2099-01-02T10:00:00Z", "2099-01-02T14:00:00Z", 500000, 10),
-        ("Mars", "Earth", "2099-01-03T12:00:00Z", "2099-01-03T20:00:00Z", 950000, 10),
-        ("Venus", "Earth", "2099-01-04T08:00:00Z", "2099-01-04T18:00:00Z", 1200000, 10),
-        ("Jupiter", "Europa", "2099-01-05T15:00:00Z", "2099-01-05T19:00:00Z", 2000000, 10),
-        ("Earth", "Venus", "2099-01-06T07:00:00Z", "2099-01-06T15:00:00Z", 1100000, 10),
-        ("Moon", "Mars", "2099-01-07T11:00:00Z", "2099-01-07T19:00:00Z", 800000, 10),
-        ("Mars", "Jupiter", "2099-01-08T13:00:00Z", "2099-01-08T23:00:00Z", 2500000, 10),
-        ("Europa", "Earth", "2099-01-09T09:00:00Z", "2099-01-09T21:00:00Z", 3000000, 10),
-        ("Earth", "Pluto", "2099-01-10T06:00:00Z", "2099-01-11T06:00:00Z", 5000000, 10),
+        ("Earth", "Mars", "2099-01-01T09:00:00Z", "2099-01-01T17:00:00Z", 1000000, 10, 0.65),  # 8h @ 0.65c
+        ("Earth", "Moon", "2099-01-02T10:00:00Z", "2099-01-02T14:00:00Z", 500000, 10, 0.30),  # 4h @ 0.3c (short hop)
+        ("Mars", "Earth", "2099-01-03T12:00:00Z", "2099-01-03T20:00:00Z", 950000, 10, 0.60),  # 8h @ 0.6c
+        ("Venus", "Earth", "2099-01-04T08:00:00Z", "2099-01-04T18:00:00Z", 1200000, 10, 0.70),  # 10h @ 0.7c
+        ("Jupiter", "Europa", "2099-01-05T15:00:00Z", "2099-01-05T19:00:00Z", 2000000, 10, 0.40),  # 4h @ 0.4c (local)
+        ("Earth", "Venus", "2099-01-06T07:00:00Z", "2099-01-06T15:00:00Z", 1100000, 10, 0.68),  # 8h @ 0.68c
+        ("Moon", "Mars", "2099-01-07T11:00:00Z", "2099-01-07T19:00:00Z", 800000, 10, 0.55),  # 8h @ 0.55c
+        ("Mars", "Jupiter", "2099-01-08T13:00:00Z", "2099-01-08T23:00:00Z", 2500000, 10, 0.85),  # 10h @ 0.85c (long)
+        ("Europa", "Earth", "2099-01-09T09:00:00Z", "2099-01-09T21:00:00Z", 3000000, 10, 0.90),  # 12h @ 0.9c (very long)
+        ("Earth", "Pluto", "2099-01-10T06:00:00Z", "2099-01-11T06:00:00Z", 5000000, 10, 0.95),  # 24h @ 0.95c (extreme)
     ]
     
     flights = []
-    for origin, destination, departure, arrival, base_price, total_seats in flight_data:
+    for origin, destination, departure, arrival, base_price, total_seats, velocity in flight_data:
         # Calculate seat distribution: 60% economy, 30% business, 10% galaxium
         economy_seats = int(total_seats * 0.6)
         business_seats = int(total_seats * 0.3)
@@ -69,7 +72,8 @@ def seed():
             base_price=base_price,
             economy_seats_available=economy_seats,
             business_seats_available=business_seats,
-            galaxium_seats_available=galaxium_seats
+            galaxium_seats_available=galaxium_seats,
+            velocity=velocity
         ))
     db.add_all(flights)
     db.commit()

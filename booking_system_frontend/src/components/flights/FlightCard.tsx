@@ -1,8 +1,9 @@
 import type { Flight, SeatClass } from '../../types';
 import { Card, Button } from '../common';
-import { Plane, Clock, Users, Crown, Rocket } from 'lucide-react';
+import { Plane, Clock, Users, Crown, Rocket, Zap } from 'lucide-react';
 import { formatCurrency, formatDate, formatTime, calculateDuration } from '../../utils/formatters';
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 
 interface FlightCardProps {
   flight: Flight;
@@ -10,8 +11,10 @@ interface FlightCardProps {
 }
 
 export const FlightCard = ({ flight, onBook }: FlightCardProps) => {
+  const [showPhysics, setShowPhysics] = useState(false);
   const totalSeats = flight.economy_seats_available + flight.business_seats_available + flight.galaxium_seats_available;
   const isSoldOut = totalSeats === 0;
+  const isRelativisticSpeed = flight.velocity > 0.7;
 
   const seatClasses = [
     {
@@ -95,13 +98,79 @@ export const FlightCard = ({ flight, onBook }: FlightCardProps) => {
             </div>
           </div>
 
-          {/* Duration */}
-          <div className="flex items-center gap-2 text-star-white/70">
-            <Clock size={16} />
-            <span className="text-sm">
-              Duration: {calculateDuration(flight.departure_time, flight.arrival_time)}
-            </span>
+          {/* Duration and Relativistic Badge */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-star-white/70">
+              <Clock size={16} />
+              <span className="text-sm">
+                Duration: {calculateDuration(flight.departure_time, flight.arrival_time)}
+              </span>
+            </div>
+            {isRelativisticSpeed && (
+              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-solar-orange/20 border border-solar-orange/40">
+                <Zap size={14} className="text-solar-orange" />
+                <span className="text-xs font-semibold text-solar-orange">Relativistic Speed</span>
+              </div>
+            )}
           </div>
+
+          {/* Time Dilation Physics Section */}
+          {flight.velocity > 0 && (
+            <div className="border border-cosmic-purple/30 rounded-lg overflow-hidden">
+              <button
+                onClick={() => setShowPhysics(!showPhysics)}
+                className="w-full px-3 py-2 bg-cosmic-purple/10 hover:bg-cosmic-purple/20 transition-colors flex items-center justify-between"
+              >
+                <span className="text-sm font-medium text-cosmic-purple">
+                  ⚛️ Physics Details {showPhysics ? '▼' : '▶'}
+                </span>
+              </button>
+              
+              {showPhysics && (
+                <div className="p-3 space-y-2 bg-space-black/50">
+                  <div className="text-xs text-star-white/80">
+                    <div className="mb-2">
+                      <span className="font-semibold text-cosmic-purple">Velocity:</span>{' '}
+                      {(flight.velocity * 100).toFixed(1)}% of light speed
+                    </div>
+                    
+                    <div className="mb-2 p-2 bg-cosmic-purple/10 rounded border border-cosmic-purple/30">
+                      <div className="font-semibold text-alien-green mb-1">
+                        Lorentz Factor (γ): {flight.lorentz_factor.toFixed(3)}
+                      </div>
+                      <div className="text-xs text-star-white/60">
+                        γ = 1/√(1 - v²/c²)
+                      </div>
+                    </div>
+                    
+                    <div className="mb-2 p-2 bg-blue-500/10 rounded border border-blue-400/30">
+                      <div className="font-semibold text-blue-400 mb-1">
+                        Time Dilation Factor: {flight.time_dilation_factor.toFixed(3)}
+                      </div>
+                      <div className="text-xs text-star-white/60">
+                        Time passes {flight.time_dilation_factor.toFixed(3)}× slower on ship
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-1 mb-2">
+                      <div>
+                        <span className="font-semibold text-blue-400">Ship Time:</span>{' '}
+                        {flight.proper_time_hours.toFixed(2)} hours
+                      </div>
+                      <div>
+                        <span className="font-semibold text-purple-400">Earth Time:</span>{' '}
+                        {(flight.proper_time_hours / flight.time_dilation_factor).toFixed(2)} hours
+                      </div>
+                    </div>
+                    
+                    <div className="text-xs text-star-white/60 italic border-t border-white/10 pt-2">
+                      ℹ️ For every {flight.time_dilation_factor.toFixed(2)} hours onboard, {(1 / flight.time_dilation_factor).toFixed(2)} hours pass on Earth due to relativistic time dilation
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Seat Classes */}
           <div className="space-y-2">

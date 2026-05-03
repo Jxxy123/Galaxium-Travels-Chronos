@@ -23,8 +23,10 @@ services:
     environment:
       DATABASE_URL: postgresql://galaxium:local_dev_password@postgres:5432/galaxium_booking
       CORS_ORIGINS: http://localhost:5173,http://localhost
-      JAVA_SERVICE_URL: http://java-service:8080
+      JAVA_SERVICE_URL: http://host.docker.internal:8080
       SEED_DEMO_DATA: "true"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
@@ -40,7 +42,7 @@ services:
     build: ./booking_system_inventory_hold_service
     platform: linux/amd64
     ports:
-      - "8082:8080"
+      - "8080:8080"
     environment:
       PYTHON_BACKEND_URL: http://backend:8080
       SPRING_DATASOURCE_URL: jdbc:sqlite:/app/data/holds.db

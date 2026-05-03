@@ -7,10 +7,10 @@ from typing import Union, Optional
 from dotenv import load_dotenv
 import os
 import httpx
-from db import SessionLocal, init_db, get_db
-from seed import seed
-from services import flight, user, booking
-from schemas import FlightOut, BookingOut, UserOut, ErrorResponse, BookingRequest, UserRegistration
+from .db import SessionLocal, init_db, get_db
+from .seed import seed
+from .services import flight, user, booking
+from .schemas import FlightOut, BookingOut, UserOut, ErrorResponse, BookingRequest, UserRegistration
 
 # Load environment variables from .env file
 load_dotenv()
@@ -298,43 +298,116 @@ def create_booking_from_hold(hold_data: dict, db: Session = Depends(get_db)):
 # ==================== JAVA SERVICE PROXY ENDPOINTS ====================
 
 @app.post("/quotes", tags=["Quotes"])
-async def create_quote(quote_data: dict):
-    """Proxy endpoint to create a quote in the Java hold service."""
+async def create_quote(quote_data: dict, db: Session = Depends(get_db)):
+    """Proxy endpoint to create a hold in the Java hold service.
+    
+    Note: The Java service doesn't have a separate 'quote' concept.
+    This endpoint directly creates a hold and returns it as a quote.
+    """
+    # Get flight to calculate price first
+    from .models import Flight
+    from .services.booking import SEAT_CLASS_MULTIPLIERS
+    
+    flight_id = quote_data.get("flightId")
+    seat_class = quote_data.get("seatClass", "economy")
+    quantity = quote_data.get("quantity", 1)
+    
+    flight = db.query(Flight).filter(Flight.flight_id == flight_id).first()
+    if not flight:
+        raise HTTPException(status_code=404, detail="Flight not found")
+    
+    # Calculate prices
+    multiplier = SEAT_CLASS_MULTIPLIERS.get(seat_class, 1.0)
+    price_per_seat = flight.base_price * multiplier
+    total_price = price_per_seat * quantity
+    
+    # Transform frontend camelCase to Java snake_case and include price data
+    hold_request = {
+        "flight_id": quote_data.get("flightId"),
+        "seat_class": quote_data.get("seatClass"),
+        "quantity": quote_data.get("quantity", 1),
+        "duration_minutes": quote_data.get("durationMinutes", 15),
+        "price_per_seat": price_per_seat,
+        "total_price": total_price
+    }
+    
     async with httpx.AsyncClient() as client:
-        try:
-            response = await client.post(
-                f"{JAVA_SERVICE_URL}/api/v1/quotes",
-                json=quote_data,
-                timeout=30.0
-            )
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPError as e:
-            return {"error": f"Failed to create quote: {str(e)}"}
+        response = await client.post(f"{JAVA_SERVICE_URL}/api/v1/holds", json=hold_request)
+        if response.status_code != 200:
+            raise HTTPException(status_code=response.status_code, detail=response.json())
+        
+        # Enrich response with price data and transform to Quote format
+        hold_data = response.json()
+        quote_response = {
+            "quoteId": str(hold_data.get("holdId")),  # Java serializes as "holdId" not "id"
+            "flightId": hold_data.get("flightId"),
+            "seatClass": hold_data.get("seatClass"),
+            "quantity": hold_data.get("quantity"),
+            "pricePerSeat": price_per_seat,
+            "totalPrice": total_price,
+            "expiresAt": hold_data.get("expiresAt"),
+            "createdAt": hold_data.get("createdAt"),
+            "status": "CREATED"
+        }
+        return quote_response
 
 
 @app.get("/quotes/{quote_id}", tags=["Quotes"])
-async def get_quote(quote_id: str):
-    """Proxy endpoint to get a quote from the Java hold service."""
+async def get_quote(quote_id: str, db: Session = Depends(get_db)):
+    """Proxy endpoint to get a hold from the Java hold service (returned as a quote)."""
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(
-                f"{JAVA_SERVICE_URL}/api/v1/quotes/{quote_id}",
+                f"{JAVA_SERVICE_URL}/api/v1/holds/{quote_id}",
                 timeout=30.0
             )
             response.raise_for_status()
-            return response.json()
+            hold_data = response.json()
+            
+            # Get flight to calculate price
+            from .models import Flight
+            from .services.booking import SEAT_CLASS_MULTIPLIERS
+            
+            flight_id = hold_data.get("flightId")
+            seat_class = hold_data.get("seatClass", "economy")
+            quantity = hold_data.get("quantity", 1)
+            
+            flight = db.query(Flight).filter(Flight.flight_id == flight_id).first()
+            if not flight:
+                return {"error": "Flight not found"}
+            
+            # Calculate prices
+            multiplier = SEAT_CLASS_MULTIPLIERS.get(seat_class, 1.0)
+            price_per_seat = flight.base_price * multiplier
+            total_price = price_per_seat * quantity
+            
+            # Transform to Quote format
+            quote_response = {
+                "quoteId": str(hold_data.get("holdId")),  # Java serializes as "holdId" not "id"
+                "flightId": hold_data.get("flightId"),
+                "seatClass": hold_data.get("seatClass"),
+                "quantity": hold_data.get("quantity"),
+                "pricePerSeat": price_per_seat,
+                "totalPrice": total_price,
+                "expiresAt": hold_data.get("expiresAt"),
+                "createdAt": hold_data.get("createdAt"),
+                "status": "CREATED"
+            }
+            return quote_response
         except httpx.HTTPError as e:
             return {"error": f"Failed to get quote: {str(e)}"}
 
 
 @app.post("/quotes/{quote_id}/holds", tags=["Holds"])
 async def create_hold(quote_id: str):
-    """Proxy endpoint to create a hold from a quote in the Java hold service."""
+    """Proxy endpoint - in the Java service, quotes and holds are the same.
+    
+    This endpoint returns the existing hold (quote) without creating a new one.
+    """
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.post(
-                f"{JAVA_SERVICE_URL}/api/v1/quotes/{quote_id}/holds",
+            response = await client.get(
+                f"{JAVA_SERVICE_URL}/api/v1/holds/{quote_id}",
                 timeout=30.0
             )
             response.raise_for_status()
@@ -378,8 +451,8 @@ async def release_hold(hold_id: str):
     """Proxy endpoint to release a hold in the Java hold service."""
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.post(
-                f"{JAVA_SERVICE_URL}/api/v1/holds/{hold_id}/release",
+            response = await client.delete(
+                f"{JAVA_SERVICE_URL}/api/v1/holds/{hold_id}",
                 timeout=30.0
             )
             response.raise_for_status()
@@ -400,4 +473,4 @@ app.mount("/mcp", mcp_app)
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

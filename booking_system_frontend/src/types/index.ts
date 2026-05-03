@@ -15,6 +15,11 @@ export interface Flight {
   economy_price: number;
   business_price: number;
   galaxium_price: number;
+  // Time dilation fields (Project Chronos)
+  velocity: number;  // Fraction of speed of light (0.0-0.99)
+  lorentz_factor: number;  // γ = 1/√(1-v²/c²)
+  time_dilation_factor: number;  // How much slower time passes on ship
+  proper_time_hours: number;  // Time experienced by passengers
 }
 
 export interface Booking {
@@ -92,14 +97,19 @@ export interface Quote {
 export type HoldStatus = 'HELD' | 'EXPIRED' | 'CONFIRMED' | 'RELEASED' | 'CONFIRMATION_FAILED';
 
 export interface Hold {
-  holdId: string;
-  quoteId: string;
-  status: HoldStatus;
-  reservedUntil: string;
+  holdId: string;  // Normalized to string in API layer (Java returns number)
+  quoteId?: string;  // Optional - Java service doesn't use quotes
+  flightId?: number;  // From Java Hold entity
+  seatClass?: string;  // From Java Hold entity
+  quantity?: number;  // From Java Hold entity
+  pricePerSeat?: number;  // From Java Hold entity
+  totalPrice?: number;  // From Java Hold entity
+  status: HoldStatus | string;  // Java uses ACTIVE/EXPIRED/RELEASED/CONFIRMED
+  expiresAt: string;  // Java service uses 'expiresAt', not 'reservedUntil'
   externalBookingReference?: string;
   errorMessage?: string;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;  // Optional - may not be present initially
 }
 
 // Persisted hold data (stored in localStorage for MyBookings display)

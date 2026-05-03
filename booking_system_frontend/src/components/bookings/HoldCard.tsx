@@ -23,7 +23,10 @@ export const HoldCard = ({ storedHold, flight, onAction }: HoldCardProps) => {
 
   useEffect(() => {
     const update = () => {
-      const remaining = new Date(storedHold.reservedUntil).getTime() - Date.now();
+      // Explicitly parse as UTC - the 'Z' suffix indicates UTC time
+      const expiryTime = new Date(storedHold.reservedUntil).getTime();
+      const now = Date.now();
+      const remaining = expiryTime - now;
       setTimeLeft(isNaN(remaining) ? 0 : Math.max(0, remaining));
     };
 

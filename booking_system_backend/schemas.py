@@ -39,10 +39,15 @@ class FlightOut(BaseModel):
     economy_seats_available: int
     business_seats_available: int
     galaxium_seats_available: int
+    velocity: float  # Fraction of speed of light (0.0-0.99)
     # Computed prices for all classes
     economy_price: int
     business_price: int
     galaxium_price: int
+    # Time dilation fields
+    lorentz_factor: float  # γ = 1/√(1-v²/c²)
+    time_dilation_factor: float  # How much slower time passes on ship
+    proper_time_hours: float  # Time experienced by passengers
 
     class Config:
         from_attributes = True

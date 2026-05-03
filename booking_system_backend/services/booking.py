@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from datetime import datetime
-from models import User, Flight, Booking
-from schemas import BookingOut, ErrorResponse, SeatClass
+from ..models import User, Flight, Booking
+from ..schemas import BookingOut, ErrorResponse, SeatClass
 
 
 # Price multipliers for each seat class
@@ -79,7 +79,7 @@ def book_flight(db: Session, user_id: int, name: str, flight_id: int, seat_class
         user_id=user_id,
         flight_id=flight_id,
         status="booked",
-        booking_time=datetime.utcnow().isoformat(),
+        booking_time=datetime.utcnow().isoformat() + 'Z',
         seat_class=seat_class,
         price_paid=price_paid
     )

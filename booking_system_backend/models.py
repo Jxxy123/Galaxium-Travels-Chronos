@@ -1,5 +1,5 @@
 from enum import Enum
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
@@ -27,6 +27,7 @@ class Flight(Base):
     economy_seats_available = Column(Integer, nullable=False)  # 60% of total
     business_seats_available = Column(Integer, nullable=False)  # 30% of total
     galaxium_seats_available = Column(Integer, nullable=False)  # 10% of total
+    velocity = Column(Float, nullable=False, default=0.0)  # Fraction of speed of light (0.0-0.99)
 
 class Booking(Base):
     __tablename__ = 'bookings'

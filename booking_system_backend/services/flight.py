@@ -1,9 +1,10 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_, func, cast, Integer
-from models import Flight
-from schemas import FlightOut, ErrorResponse
+from ..models import Flight
+from ..schemas import FlightOut, ErrorResponse
 from datetime import datetime, timedelta
 from typing import Optional
+from ..physics import calculate_time_dilation
 
 
 # Popular route categories (hardcoded for demo)
@@ -207,6 +208,12 @@ def list_flights(
         if max_duration is not None and duration_hours > max_duration:
             continue
         
+        # Calculate time dilation effects
+        velocity = f.velocity if hasattr(f, 'velocity') and f.velocity else 0.0
+        lorentz_factor, time_dilation_factor, proper_time_hours = calculate_time_dilation(
+            duration_hours, velocity
+        )
+        
         # Compute prices for all seat classes
         flight_dict = {
             'flight_id': f.flight_id,
@@ -218,9 +225,13 @@ def list_flights(
             'economy_seats_available': f.economy_seats_available,
             'business_seats_available': f.business_seats_available,
             'galaxium_seats_available': f.galaxium_seats_available,
+            'velocity': velocity,
             'economy_price': f.base_price,  # 1x
             'business_price': int(f.base_price * 2.5),  # 2.5x
-            'galaxium_price': f.base_price * 5  # 5x
+            'galaxium_price': f.base_price * 5,  # 5x
+            'lorentz_factor': lorentz_factor,
+            'time_dilation_factor': time_dilation_factor,
+            'proper_time_hours': proper_time_hours
         }
         result.append((FlightOut(**flight_dict), duration_hours, f))
     

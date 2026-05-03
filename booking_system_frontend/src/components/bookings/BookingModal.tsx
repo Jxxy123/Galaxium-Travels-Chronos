@@ -52,7 +52,10 @@ export const BookingModal = ({ isOpen, onClose, flight, onSuccess }: BookingModa
     if (!hold || step !== 'hold') return;
 
     const update = () => {
-      const remaining = new Date(hold.reservedUntil).getTime() - Date.now();
+      // Explicitly parse as UTC - the 'Z' suffix indicates UTC time
+      const expiryTime = new Date(hold.expiresAt).getTime();
+      const now = Date.now();
+      const remaining = expiryTime - now;
       setTimeLeft(isNaN(remaining) ? 0 : Math.max(0, remaining));
     };
 
@@ -157,10 +160,16 @@ export const BookingModal = ({ isOpen, onClose, flight, onSuccess }: BookingModa
         travelerId: user.user_id,
         travelerName: user.name,
       });
+
+      // Check if the response contains a backend error
+if ((newQuote as any).error) {
+  toast.error((newQuote as any).error);
+  return;
+}
       setQuote(newQuote);
       setStep('quote');
     } catch {
-      toast.error('Failed to get quote. Make sure the inventory service is running.');
+      toast.error('Network error. Make sure the inventory service is running.');
     } finally {
       setIsLoading(false);
     }
@@ -183,7 +192,7 @@ export const BookingModal = ({ isOpen, onClose, flight, onSuccess }: BookingModa
           seatClass: selectedClass,
           pricePerSeat: quote.pricePerSeat,
           totalPrice: quote.totalPrice,
-          reservedUntil: newHold.reservedUntil,
+          reservedUntil: newHold.expiresAt,
         });
       }
 

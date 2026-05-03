@@ -176,28 +176,36 @@ export const getQuote = async (quoteId: string): Promise<Quote> => {
   return response.data as Quote;
 };
 
+// Helper to normalize Hold response from Java service
+const normalizeHold = (hold: any): Hold => {
+  return {
+    ...hold,
+    holdId: String(hold.holdId), // Convert number to string for consistency
+  };
+};
+
 export const createHold = async (quoteId: string): Promise<Hold> => {
   const response = await api.post(`/quotes/${quoteId}/holds`);
   assertNotProxyError(response.data);
-  return response.data as Hold;
+  return normalizeHold(response.data);
 };
 
-export const getHold = async (holdId: string): Promise<Hold> => {
+export const getHold = async (holdId: string | number): Promise<Hold> => {
   const response = await api.get(`/holds/${holdId}`);
   assertNotProxyError(response.data);
-  return response.data as Hold;
+  return normalizeHold(response.data);
 };
 
-export const confirmHold = async (holdId: string): Promise<Hold> => {
+export const confirmHold = async (holdId: string | number): Promise<Hold> => {
   const response = await api.post(`/holds/${holdId}/confirm`);
   assertNotProxyError(response.data);
-  return response.data as Hold;
+  return normalizeHold(response.data);
 };
 
-export const releaseHold = async (holdId: string): Promise<Hold> => {
+export const releaseHold = async (holdId: string | number): Promise<Hold> => {
   const response = await api.post(`/holds/${holdId}/release`);
   assertNotProxyError(response.data);
-  return response.data as Hold;
+  return normalizeHold(response.data);
 };
 
 // ==================== Helper Functions ====================
