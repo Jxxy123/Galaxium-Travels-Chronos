@@ -25,27 +25,27 @@ Since this is a distributed microservice architecture, you must run the followin
 
 *  **Terminal 1: Java Inventory Service**
 
-Navigate to: /inventory_hold_service
+   Navigate to: /inventory_hold_service
 
-Run: ./mvnw spring-boot:run
+   Run: ./mvnw spring-boot:run
 
-Role: Manages relativistic seat availability.
+   Role: Manages relativistic seat availability.
 
 *  **Terminal 2: Python Backend (FastAPI)**
 
-Navigate to: /booking_system_backend
+   Navigate to: /booking_system_backend
 
-Run: python -m booking_system_backend.server
+   Run: python -m booking_system_backend.server
 
-Role: Handles the Lorentz Factor math and SQLite synchronization.
+   Role: Handles the Lorentz Factor math and SQLite synchronization.
 
 *  **Terminal 3: React Frontend**
 
-Navigate to: /booking_system_frontend
+   Navigate to: /booking_system_frontend
 
-Run: npm run dev
+   Run: npm run dev
 
-Role: The interactive UI for travelers.
+   Role: The interactive UI for travelers.
 
 ### **⚠️ CRITICAL: Identity Sync Note**
 
