@@ -51,6 +51,8 @@ Since this is a distributed microservice architecture, you must run the followin
 
 To see the backend synchronization in action, you must register or log in as "John" (case-sensitive). The current proof-of-concept backend specifically identifies "John" to link the relativistic bookings to the local database.
 
+---
+
 ## **🌌 The Challenge: Relativistic Clock Drift**
 
 In interstellar travel, time is not constant. Due to time dilation, traveler ship-time drifts away from Earth-time (UTC).
