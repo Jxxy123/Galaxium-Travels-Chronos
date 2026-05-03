@@ -33,7 +33,9 @@ In interstellar travel, time is not constant. Due to time dilation, traveler shi
 
 We integrated a backend logic layer that utilizes the **Lorentz Factor** ($\gamma$) to ensure booking holds remain valid across different inertial frames:
 
-                 $$ \gamma = \frac{1}{\sqrt{1 - \frac{v^2}{c^2}}} $$
+$$
+\gamma = \frac{1}{\sqrt{1 - \frac{v^2}{c^2}}}
+$$
 
 ---
 
