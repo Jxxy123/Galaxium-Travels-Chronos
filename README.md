@@ -19,6 +19,38 @@ We used **IBM Bob** to accelerate the development lifecycle and move from a "bro
 
 ---
 
+## **🛠️ Manual Setup (Three-Terminal Launch)**
+
+Since this is a distributed microservice architecture, you must run the following three services in separate terminal windows:
+
+*  **Terminal 1: Java Inventory Service**
+
+Navigate to: /inventory_hold_service
+
+Run: ./mvnw spring-boot:run
+
+Role: Manages relativistic seat availability.
+
+*  **Terminal 2: Python Backend (FastAPI)**
+
+Navigate to: /booking_system_backend
+
+Run: python -m booking_system_backend.server
+
+Role: Handles the Lorentz Factor math and SQLite synchronization.
+
+*  **Terminal 3: React Frontend**
+
+Navigate to: /booking_system_frontend
+
+Run: npm run dev
+
+Role: The interactive UI for travelers.
+
+### **⚠️ CRITICAL: Identity Sync Note**
+
+To see the backend synchronization in action, you must register or log in as "John" (case-sensitive). The current proof-of-concept backend specifically identifies "John" to link the relativistic bookings to the local database.
+
 ## **🌌 The Challenge: Relativistic Clock Drift**
 
 In interstellar travel, time is not constant. Due to time dilation, traveler ship-time drifts away from Earth-time (UTC).

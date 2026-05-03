@@ -432,7 +432,7 @@ async def get_hold(hold_id: str):
 
 
 @app.post("/holds/{hold_id}/confirm", tags=["Holds"])
-async def confirm_hold(hold_id: str, db: Session = Depends(get_db)): # Added 'db' session
+async def confirm_hold(hold_id: str, db: Session = Depends(get_db)):
     """Proxy to confirm in Java AND manually sync to the local Python DB."""
     async with httpx.AsyncClient() as client:
         try:
@@ -452,16 +452,28 @@ async def confirm_hold(hold_id: str, db: Session = Depends(get_db)): # Added 'db
             # Grab the user "John" to link the booking to his account
             user_record = db.query(User).filter(User.name == "John").first()
             
-            if user_record: 
-                # 'My Bookings' page has data to display.
-                booking.book_flight(
+            if user_record:
+                # 3. Create booking in Python SQLite DB so 'My Bookings' page has data
+                result = booking.book_flight(
                     db,
                     user_id=user_record.user_id,
                     name=user_record.name,
                     flight_id=data["flightId"],
                     seat_class=data["seatClass"]
                 )
+                
+                # 4. Handle booking failure (no seats, validation error, etc.)
+                if isinstance(result, ErrorResponse):
+                    print(f"BOB LOG: Failed to sync booking for {reference_val}: {result.error}")
+                    return {
+                        "error": f"Hold confirmed in Java but booking failed: {result.error}",
+                        "details": result.details,
+                        "error_code": result.error_code
+                    }
+                
                 print(f"BOB LOG: Successfully synced {reference_val} for user {user_record.name}")
+            else:
+                print(f"BOB LOG: User 'John' not found - cannot create booking for {reference_val}")
             
             return data
         except httpx.HTTPError as e:
@@ -470,7 +482,11 @@ async def confirm_hold(hold_id: str, db: Session = Depends(get_db)): # Added 'db
 
 @app.post("/holds/{hold_id}/release", tags=["Holds"])
 async def release_hold(hold_id: str):
-    """Proxy endpoint to release a hold in the Java hold service."""
+    """Proxy endpoint to release a hold in the Java hold service.
+    
+    This 'puts the seat back on the shelf' by marking the hold as RELEASED in Java,
+    preventing ghost reservations from clogging the inventory.
+    """
     async with httpx.AsyncClient() as client:
         try:
             response = await client.delete(
@@ -481,9 +497,6 @@ async def release_hold(hold_id: str):
             return response.json()
         except httpx.HTTPError as e:
             return {"error": f"Failed to release hold: {str(e)}"}
-
-    """Retrieve a user's information by providing both name and email."""
-    return user.get_user(db, name, email)
 
 
 # ==================== MOUNT MCP INTO FASTAPI ====================
